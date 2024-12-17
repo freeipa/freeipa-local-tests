@@ -1,0 +1,39 @@
+# Build configuration with
+#     $ ipalab-config -f containerfile-fedora ipalab-idmtoidm-trust.yaml
+---
+lab_name: idm2idm-trust
+container_fqdn: true
+containerfiles:
+  - containerfile-fedora
+ipa_deployments:
+  - name: t1
+    domain: ipa1demo.test
+    admin_password: Secret123
+    dm_password: Secret123
+    distro: containerfile-fedora
+    cluster:
+      servers:
+        - name: m1
+          capabilities:
+            - DNS
+            - AD
+          vars:
+            ipaserver_netbios_name: M1
+      clients:
+        - name: c1
+  - name: t2
+    domain: ipa2demo.test
+    admin_password: Secret123
+    dm_password: Secret123
+    distro: containerfile-fedora
+    cluster:
+      servers:
+        - name: m2
+          capabilities:
+            - DNS
+            - AD
+          vars:
+            ipaserver_netbios_name: M2
+      clients:
+        - name: c2
+...

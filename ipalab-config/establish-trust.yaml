@@ -1,0 +1,192 @@
+---
+- name: Estabilish IDM-to-IDM trust
+  hosts: ipaserver
+  become: false
+  gather_facts: false
+
+  vars:
+    m1_server: m1.ipa1demo.test
+    m2_server: m2.ipa2demo.test
+
+  tasks:
+  - name: Estabilish IDM-to-IDM trust
+    block:
+
+    - name: Ensure we have host DNS information
+      ansible.builtin.setup:
+        gather_subset: dns
+
+    - ansible.builtin.set_fact:
+        shortname: "{{ ansible_facts.fqdn.split('.')[0] }}"
+        domain_name: "{{ ansible_facts.fqdn.split('.')[1:] | join('.') }}"
+        realm_name: "{{ ansible_facts.fqdn.split('.')[1:] | join('.') | upper }}"
+
+    - name: Set facts for trusted IDM
+      ansible.builtin.set_fact:
+        trusted_domain: "{{ m2_server.split('.')[1:] | join('.') }}"
+        trusted_realm: "{{ m2_server.split('.')[1:] | join('.') | upper }}"
+      when: ansible_facts.fqdn == m1_server
+
+    - name: Set facts for trusted IDM
+      ansible.builtin.set_fact:
+        trusted_domain: "{{ m1_server.split('.')[1:] | join('.') }}"
+        trusted_realm: "{{ m1_server.split('.')[1:] | join('.') | upper }}"
+      when: ansible_facts.fqdn == m2_server
+
+    - name: remove old trust information
+      ansible.builtin.shell: |
+        echo "{{ ipaadmin_password }}" | kinit admin
+        ipa trust-del "{{ domain_name }}"
+        ipa idrange-del "{{ realm_name }}_id_range"
+      register: remove_old_trust
+      failed_when: false
+      changed_when: not remove_old_trust.stderr
+
+    - name: collect domain information
+      shell: |
+        echo "{{ ipaadmin_password }}" | kinit admin
+        ipa idrange-show "{{ realm_name }}_id_range" --raw && \
+        ipa trustconfig-show --raw && \
+        (ipa dnsrecord-show "{{ domain_name }}" "{{ shortname }}" --raw | head -2)
+      register: domain_info_raw
+      changed_when: false
+
+    - name: Process domain information
+      ansible.builtin.set_fact:
+        domain_info: "{{ domain_info|d({})|combine({_key: _val}) }}"
+      loop: "{{ domain_info_raw.stdout_lines }}"
+      loop_control:
+        label: "Line {{ ndx }}"
+        index_var: ndx
+      vars:
+        _list: "{{ item.split(':')|map('trim') }}"
+        _key: "{{ _list.0}}"
+        _val: "{{ _list[1:]|select()|map('from_yaml')|combine }}"
+
+    - name: Run tasks with values from the other host of the trust on m1
+      delegate_to: m1.ipa1demo.test
+      delegate_facts: true
+      when: ansible_facts.fqdn == m2_server
+      block:
+        - name: Create DNS zone forwarder for ipa2demo.test
+          freeipa.ansible_freeipa.ipadnsforwardzone:
+            # We're delegating facts from the other side, so this is actually "trusted_domain"
+            name: "{{ domain_name }}"
+            forwarders:
+              - ip_address: "{{ domain_info.arecord }}"
+
+
+        # --- use freeipa -------------------------------------------
+        - name: Estabilish trust
+          # This requires a modified ansible-freeipa version,
+          # as 'ipa' is not supported in ipatrust
+          freeipa.ansible_freeipa.ipatrust:
+            realm: "{{ domain_info.cn }}"
+            admin: "admin@{{ domain_info.cn | upper }}"
+            password: "{{ hostvars[m2_server].ipaadmin_password }}"
+            two_way: true
+            range_type: ipa-ad-trust-posix
+            trust_type: "ipa"
+            state: present
+        # -----------------------------------------------------------
+
+        # - name: Establish trust
+        #   ansible.builtin.shell: |
+        #     echo "{{ hostvars[m1_server].ipaadmin_password }}" | kinit admin
+        #     echo "{{ hostvars[m2_server].ipaadmin_password }}" | \
+        #     ipa trust-add --type=ipa "{{ domain_info.cn }}" \
+        #                   --admin "admin@{{ domain_info.cn | upper }}" \
+        #                   --password --two-way=true \
+        #                   --range-type=ipa-ad-trust-posix
+
+        - name: clean up and SSSD
+          ansible.builtin.shell: |
+            sssctl cache-remove -ops
+            sssctl logs-remove -d
+
+    - name: Run tasks with values from the other host of the trust on m2
+      delegate_to: m2.ipa2demo.test
+      delegate_facts: true
+      when: ansible_facts.fqdn == m1_server
+      block:
+        - name: Create DNS zone forwarder for ipa1demo.test
+          freeipa.ansible_freeipa.ipadnsforwardzone:
+            # We're delegating facts from the other side, so this is actually "trusted_domain"
+            name: "{{ domain_name }}"
+            forwarders:
+              - ip_address: "{{ domain_info.arecord }}"
+
+        # --- use freeipa -------------------------------------------
+        - name: Estabilish trust
+          # This requires a modified ansible-freeipa version, as 'ipa' is not supported in ipatrust
+          freeipa.ansible_freeipa.ipatrust:
+            realm: "{{ domain_info.cn }}"
+            admin: "admin@{{ domain_info.cn | upper }}"
+            password: "{{ hostvars[m1_server].ipaadmin_password }}"
+            two_way: true
+            range_type: ipa-ad-trust-posix
+            trust_type: "ipa"
+            state: present
+        # -----------------------------------------------------------
+
+        # - name: Establish trust
+        #   ansible.builtin.shell: |
+        #     echo "{{ hostvars[m2_server].ipaadmin_password }}" | kinit admin
+        #     echo "{{ hostvars[m1_server].ipaadmin_password }}" | \
+        #     ipa trust-add --type=ipa "{{ domain_info.cn }}" \
+        #                   --admin "admin@{{ domain_info.cn | upper }}" \
+        #                   --password --two-way=true \
+        #                   --range-type=ipa-ad-trust-posix
+
+        - name: clean up and restart SSSD on IPA1DEMO side
+          ansible.builtin.shell: |
+            sssctl cache-remove -ops
+            sssctl logs-remove -d
+
+    - name: Restart SSSD
+      ansible.builtin.systemd_service:
+        name: sssd
+        state: restarted
+
+    - name: Give some time to SSSD to be fully reloaded
+      ansible.builtin.pause:
+        seconds: 30
+
+    - name: Get entries for trusted domain
+      ansible.builtin.shell: |
+        hostname -f
+        getent passwd "admin@{{ trusted_domain }}"
+        getent group "admins@{{ trusted_domain }}"
+      register: trust_test
+
+    - name: Result of IPA-to-IPA trust
+      debug:
+        var: trust_test.stdout_lines
+
+    rescue:
+      # In case of error, copy log files to localhost.
+      - name: Ensure we have a local directory
+        ansible.builtin.file:
+          state: directory
+          path: "logs_{{ '%Y%m%d-%H%M' | strftime }}/{{ item }}"
+          mode: 0755
+        loop:
+          - "{{ m1_server }}"
+          - "{{ m2_server }}"
+        run_once: true
+        delegate_to: localhost
+
+      - name: Copy logs
+        block:
+          - name: Copy Samba logs
+            ansible.posix.synchronize:
+              src: "{{ item }}"
+              dest: "logs_{{ '%Y%m%d-%H%M' | strftime }}/{{ ansible_facts.fqdn }}"
+              mode: pull
+            loop:
+              - /var/log/samba/
+              - /var/log/ipaserver-install.log
+              - /var/log/sssd/
+              - /var/log/httpd/
+              - /var/log/dirsrv/
+...
