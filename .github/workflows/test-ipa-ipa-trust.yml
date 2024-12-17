@@ -63,4 +63,4 @@ jobs:
           source bin/activate
           cd ipalab-config
           ansible-galaxy collection install ansible.posix
-          ansible-playbook -i idm2idm-trust/inventory.yml establish-trust.yaml
+          ansible-playbook -i idm2idm-trust/inventory.yml establish-trust.yaml -e on_github_workflow=true

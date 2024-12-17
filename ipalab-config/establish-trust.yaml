@@ -164,6 +164,10 @@
         var: trust_test.stdout_lines
 
     rescue:
+    # If running in Github actions, it makes no sense to collect logs.
+    - name: Collect logs
+      when: not (on_github_workflow | default(false) | bool)
+      block:
       # In case of error, copy log files to localhost.
       - name: Ensure we have a local directory
         ansible.builtin.file:
@@ -189,4 +193,8 @@
               - /var/log/sssd/
               - /var/log/httpd/
               - /var/log/dirsrv/
+    - name: Ensure run failed for Github actions
+      when: on_github_workflow | default(false) | bool
+      fail:
+        msg: "Some task failed. Look at the execution log."
 ...
