@@ -19,8 +19,12 @@ ipa_deployments:
             - AD
           vars:
             ipaserver_netbios_name: M1
-      clients:
-        - name: c1
+            ipaserver_idstart: 61000
+            ipaserver_idmax: 62000
+            ipaserver_rid_base: 63000
+            ipaserver_secondary_rid_base: 70000
+      # clients:
+      #   - name: c1
   - name: t2
     domain: ipa2demo.test
     admin_password: Secret123
@@ -34,6 +38,10 @@ ipa_deployments:
             - AD
           vars:
             ipaserver_netbios_name: M2
-      clients:
-        - name: c2
+            ipaserver_idstart: 61000
+            ipaserver_idmax: 62000
+            ipaserver_rid_base: 63000
+            ipaserver_secondary_rid_base: 70000
+      # clients:
+      #   - name: c2
 ...
