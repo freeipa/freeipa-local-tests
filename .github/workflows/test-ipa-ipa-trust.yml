@@ -1,3 +1,4 @@
+---
 name: test-ipa-ipa-trust
 run-name: Test IPA-IPA trust
 on: [push]
@@ -15,8 +16,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          sudo apt update
-          sudo apt-get install libkrb5-dev libvirt-dev
+          sudo apt update -y
+          sudo apt install libkrb5-dev libvirt-dev
           sudo apt install software-properties-common
           sudo apt install ansible podman
 
@@ -24,6 +25,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Build image
+        id: build-image
         uses: redhat-actions/buildah-build@v2
         with:
           image: containerfile-fedora
@@ -33,34 +35,31 @@ jobs:
       - name: Setup ipalab config
         run: |
           python3 -m venv venv
-          cd venv
-          source bin/activate
-          cp -r ../ipalab-config .
+          source venv/bin/activate
           cd ipalab-config
           pip3 install -r requirements.txt
           pip3 install podman-compose
 
       - name: Generate containers
-        working-directory: venv
         run: |
-          source bin/activate
+          source venv/bin/activate
           cd ipalab-config
-          ipalab-config -f containerfile-fedora ipalab-idmtoidm-trust.yaml
+          ipalab-config -f containerfile-fedora -p playbooks ipalab-idmtoidm-trust.yaml
           podman-compose -f idm2idm-trust/compose.yml up -d
           ansible-galaxy collection install -r idm2idm-trust/requirements.yml
 
       - name: Create IPA deployments
-        working-directory: venv
         run: |
-          source bin/activate
+          source venv/bin/activate
           cd ipalab-config
+          # disable 'become' on install-clupster.yml playbook
           sed -i 's/become: .*$/become: false/' idm2idm-trust/playbooks/install-cluster.yml
           ansible-playbook -i idm2idm-trust/inventory.yml idm2idm-trust/playbooks/install-cluster.yml
 
       - name: Establish trust between IPA deployments
-        working-directory: venv
         run: |
-          source bin/activate
+          source venv/bin/activate
           cd ipalab-config
           ansible-galaxy collection install ansible.posix
-          ansible-playbook -i idm2idm-trust/inventory.yml establish-trust.yaml -e on_github_workflow=true
+          ansible-playbook -i idm2idm-trust/inventory.yml idm2idm-trust/playbooks/establish-trust.yaml -e on_github_workflow=true
+...

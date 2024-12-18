@@ -1,2 +1,2 @@
-ipalab-config>=0.4.1
+ipalab-config>=0.5.1
 ansible-core
