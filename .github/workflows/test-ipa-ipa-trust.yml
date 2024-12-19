@@ -1,7 +1,13 @@
 ---
 name: test-ipa-ipa-trust
 run-name: Test IPA-IPA trust
-on: [push]
+on: 
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
 jobs:
   build-and-test:
     runs-on: ubuntu-24.04
