@@ -54,23 +54,27 @@ jobs:
       - name: Generate containers
         run: |
           source venv/bin/activate
-          cd ipalab-config
-          ipalab-config -f containerfile-fedora -p playbooks ipalab-idmtoidm-trust.yaml
-          podman-compose -f idm2idm-trust/compose.yml up -d
-          ansible-galaxy collection install -r idm2idm-trust/requirements.yml
+          ipalab-config -f ipalab-config/containerfile-fedora \
+                        -p ipalab-config/playbooks \
+                        ipalab-config/ipalab-idmtoidm-trust.yaml
+          podman-compose -f ipalab-config/idm2idm-trust/compose.yml up -d
+          ansible-galaxy collection install \
+                         -r ipalab-config/idm2idm-trust/requirements.yml
 
       - name: Create IPA deployments
         run: |
           source venv/bin/activate
-          cd ipalab-config
           # disable 'become' on install-clupster.yml playbook
-          sed -i 's/become: .*$/become: false/' idm2idm-trust/playbooks/install-cluster.yml
-          ansible-playbook -i idm2idm-trust/inventory.yml idm2idm-trust/playbooks/install-cluster.yml
+          sed -i 's/become: .*$/become: false/' \
+              ipalab-config/idm2idm-trust/playbooks/install-cluster.yml
+          ansible-playbook -i ipalab-config/idm2idm-trust/inventory.yml \
+                           ipalab-config/idm2idm-trust/playbooks/install-cluster.yml
 
       - name: Establish trust between IPA deployments
         run: |
           source venv/bin/activate
-          cd ipalab-config
           ansible-galaxy collection install ansible.posix
-          ansible-playbook -i idm2idm-trust/inventory.yml idm2idm-trust/playbooks/establish-trust.yaml -e on_github_workflow=true
+          ansible-playbook -i ipalab-config/idm2idm-trust/inventory.yml \
+                           ipalab-config/idm2idm-trust/playbooks/establish-trust.yaml \
+                           -e on_github_workflow=true
 ...
