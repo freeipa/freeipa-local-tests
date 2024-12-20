@@ -1,0 +1,36 @@
+---
+name: test-with-action
+run-name: Test IPA-IPA trust using a Github Action
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    # branches:
+    #   - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-github-action:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Clone the repository
+        uses: actions/checkout@v4
+
+      - name: Build image
+        id: build-image
+        uses: redhat-actions/buildah-build@v2
+        with:
+          image: containerfile-fedora
+          tags: latest
+          containerfiles: ipalab-config/containerfile-fedora
+
+      - name: Run tests using action
+        uses: rjeffman/FreeIPA-Cluster-Test@v1.1.0
+        with:
+          cluster_configuration: ipalab-config/ipalab-idmtoidm-trust.yaml
+          ansible_requirements: ipalab-config/playbooks/requirements.yml
+          test_playbooks: ipalab-config/playbooks/establish-trust.yaml
