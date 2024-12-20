@@ -4,7 +4,7 @@
 lab_name: idm2idm-trust
 container_fqdn: true
 containerfiles:
-  - containerfile-fedora
+  - ipalab-config/containerfile-fedora
 ipa_deployments:
   - name: t1
     domain: ipa1demo.test
