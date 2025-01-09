@@ -152,16 +152,55 @@
       ansible.builtin.pause:
         seconds: 30
 
-    - name: Get entries for trusted domain
-      ansible.builtin.shell: |
-        hostname -f
-        getent passwd "admin@{{ trusted_domain }}"
-        getent group "admins@{{ trusted_domain }}"
-      register: trust_test
+    - name: Collect ID details from the trusted domain
+      delegate_to: m2.ipa2demo.test
+      delegate_facts: true
+      when: ansible_facts.fqdn == m1_server
+      block:
+        - name: Get information for admin of the trusted domain
+          ansible.builtin.getent:
+            database: passwd
+            key: "admin@{{ domain_name }}"
+          register: trust_facts
 
-    - name: Result of IPA-to-IPA trust
-      debug:
-        var: trust_test.stdout_lines
+        - name: Trusted domain user details
+          debug:
+            var: trust_facts
+
+        - name: Get information for admins group from the trusted domain
+          ansible.builtin.getent:
+            database: group
+            key: "admins@{{ domain_name }}"
+          register: trust_facts
+
+        - name: Trusted domain group details
+          debug:
+            var: trust_facts
+
+    - name: Collect ID details from the local domain
+      delegate_to: m1.ipa1demo.test
+      delegate_facts: true
+      when: ansible_facts.fqdn == m2_server
+      block:
+        - name: Get information for admin of the trusted domain
+          ansible.builtin.getent:
+            database: passwd
+            key: "admin@{{ domain_name }}"
+          register: trust_results
+
+        - name: Local domain details for trusted user
+          debug:
+            var: trust_results
+
+        - name: Get information for admins group from the trusted domain
+          ansible.builtin.getent:
+            database: group
+            key: "admins@{{ domain_name }}"
+          register: trust_results
+
+        - name: Local domain details for trusted group
+          debug:
+            var: trust_results
 
     rescue:
     # If running in Github actions, it makes no sense to collect logs.
