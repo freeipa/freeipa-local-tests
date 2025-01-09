@@ -38,8 +38,8 @@ ipa_deployments:
             - AD
           vars:
             ipaserver_netbios_name: M2
-            ipaserver_idstart: 61000
-            ipaserver_idmax: 62000
+            ipaserver_idstart: 62100
+            ipaserver_idmax: 63000
             ipaserver_rid_base: 63000
             ipaserver_secondary_rid_base: 70000
       # clients:
