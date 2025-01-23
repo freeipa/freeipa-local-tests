@@ -26,11 +26,11 @@ jobs:
         with:
           image: containerfile-fedora
           tags: latest
-          containerfiles: ipalab-config/containerfile-fedora
+          containerfiles: ipalab-config/ipa-trust/containerfile-fedora
 
       - name: Run tests using action
         uses: rjeffman/FreeIPA-Cluster-Test@v1.2.0
         with:
-          cluster_configuration: ipalab-config/ipalab-idmtoidm-trust.yaml
-          ansible_requirements: ipalab-config/playbooks/requirements.yml
-          test_playbooks: ipalab-config/playbooks/establish-trust.yaml
+          cluster_configuration: ipalab-config/ipa-trust/ipalab-idmtoidm-trust.yaml
+          ansible_requirements: ipalab-config/ipa-trust/playbooks/requirements.yml
+          test_playbooks: ipalab-config/ipa-trust/playbooks/establish-trust.yaml

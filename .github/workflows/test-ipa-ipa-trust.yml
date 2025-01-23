@@ -41,22 +41,22 @@ jobs:
         with:
           image: containerfile-fedora
           tags: latest
-          containerfiles: ipalab-config/containerfile-fedora
+          containerfiles: ipalab-config/ipa-trust/containerfile-fedora
 
       - name: Setup ipalab config
         run: |
           python3 -m venv venv
           source venv/bin/activate
-          cd ipalab-config
+          cd ipalab-config/ipa-trust
           pip3 install -r requirements.txt
           pip3 install podman-compose
 
       - name: Generate containers
         run: |
           source venv/bin/activate
-          ipalab-config -f ipalab-config/containerfile-fedora \
-                        -p ipalab-config/playbooks \
-                        ipalab-config/ipalab-idmtoidm-trust.yaml
+          ipalab-config -f ipalab-config/ipa-trust/containerfile-fedora \
+                        -p ipalab-config/ipa-trust/playbooks \
+                        ipalab-config/ipa-trust/ipalab-idmtoidm-trust.yaml
           cd ./idm2idm-trust
           podman-compose -f compose.yml up -d
           ansible-galaxy collection install \
