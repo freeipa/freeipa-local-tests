@@ -1,0 +1,19 @@
+---
+- name: Ensure several users exist on origin server
+  hosts: origin
+  become: false
+  gather_facts: false
+  tasks:
+  - name: Generate users list
+    ansible.builtin.import_tasks: generate_test_data.yml
+    run_once: true
+    delegate_to: localhost
+    vars:
+      user_count: 50
+
+  - name: Ensure users are absent
+    freeipa.ansible_freeipa.ipauser:
+      ipaadmin_password: "{{ ipaadmin_password | default('Secret123') }}"
+      user: "{{ user_absent_list }}"
+      state: absent
+...
