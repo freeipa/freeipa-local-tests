@@ -1,0 +1,15 @@
+$TTL 3600
+$ORIGIN localkdc.test.
+;
+@     IN  SOA  unbound.localkdc.test. hostmaster.unbound.localkdc.test. (
+           2025012401  ; serial
+                10800  ; refresh (3 hours)
+                   90  ; retry (15 min)
+               604800  ; expire (1 week)
+                86400  ; minimum (1 day)
+     )
+     IN  NS  unbound.localkdc.test.     86400
+;
+ab          IN  A     192.168.221.3     ;
+asn         IN  A     192.168.221.4     ;
+unbound     IN  A     192.168.221.254   ;
