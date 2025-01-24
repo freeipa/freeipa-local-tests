@@ -16,21 +16,21 @@ Build the containers:
 
 ```
 ipalab-config -f containerfile-fedora -p playbooks ipalab-migration.yaml
-podman-compose -f ipalab-migration/compose.yml up -d --build
-ansible-galaxy collection install -r ipalab-migration/requirements.yml
+cd ipalab-migration
+podman-compose up -d --build
+ansible-galaxy collection install -r requirements.yml
 ```
 
 Deploy the IPA cluster:
 
 ```
-ansible-playbook -i ipalab-migration/inventory.yml ipalab-migration/playbooks/install-cluster.yml
+ansible-playbook -i inventory.yml playbooks/install-cluster.yml
 ```
 
 To test ipa-migration, first create some objects in the origin server:
 
 ```
-ansible-playbook -i ipalab-migration/inventory.yml ipalab-migration/playbooks/users_present.yml
-
+ansible-playbook -i inventory.yml playbooks/users_present.yml
 ```
 
 Access the target server container:
