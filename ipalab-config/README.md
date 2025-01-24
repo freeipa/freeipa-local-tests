@@ -18,7 +18,7 @@ python3 -m venv /tmp/ipalab
 pip install -r requirements.txt
 ```
 
-Then iplab-config tool can be used for building the containers, generating the cofniguration files (podman-compose) as well as deploying FreeIPA in the clusters.
+Then iplab-config tool can be used for building the containers, generating the configuration files (podman-compose) as well as deploying FreeIPA in the clusters.
 
 
 ## Use Cases

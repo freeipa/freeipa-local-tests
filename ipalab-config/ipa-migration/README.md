@@ -26,9 +26,32 @@ Deploy the IPA cluster:
 ansible-playbook -i ipalab-migration/inventory.yml ipalab-migration/playbooks/install-cluster.yml
 ```
 
-Migrate from origin to target deployment:
+To test ipa-migration, first create some objects in the origin server:
 
 ```
-ansible-galaxy collection install ansible.posix
-ansible-playbook -i ipa-migration/inventory.yml ipa-migration/playbooks/ipa-migrate.yaml
+ansible-playbook -i ipalab-migration/inventory.yml ipalab-migration/playbooks/users_present.yml
+
 ```
+
+Access the target server container:
+
+```
+podman exec -it m2.target.test bash
+```
+
+Obtain an IPA administrator TGT ticket (in this example the password is Secret123):
+```
+echo Secret123 | kinit
+```
+
+Put the server into migration mode:
+```
+ipa config-mod --enable-migration=true
+```
+
+Execute the ipa-migration tool, and answer to the questions:
+
+```
+ipa-migrate prod-mode m1.origin.test
+```
+
