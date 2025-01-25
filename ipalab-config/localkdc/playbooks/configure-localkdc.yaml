@@ -1,0 +1,98 @@
+---
+- name: Local KDC demo
+  hosts: ipaclients
+  become: false
+  gather_facts: true
+
+  tasks:
+    - name: Generate realm name based on the host name
+      ansible.builtin.set_fact:
+        workgroup_name: "{{ ansible_facts.fqdn.split('.')[0] | upper }}"
+        realm_name: "{{ ansible_facts.fqdn.split('.')[0] | upper }}.LOCALKDC.SITE"
+
+    - name: Modify configuration templates to apply realm name
+      ansible.builtin.shell: |
+        sed -i "s@%REALM%@{{ realm_name }}@g" /root/configs/00-*
+        sed -i "s@%WORKGROUP%@{{ workgroup_name }}@g" /root/configs/00-*
+
+    - name: Set local KDC configuration defaults
+      ansible.builtin.copy:
+        src: /root/configs/00-krb5.conf.d-defaults.conf
+        remote_src: true
+        dest: /etc/krb5.conf.d/defaults
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Create default SSSD configuration
+      ansible.builtin.copy:
+        src: /root/configs/00-sssd.conf
+        remote_src: true
+        dest: /etc/sssd/sssd.conf
+        owner: root
+        group: sssd
+        mode: '0640'
+
+    - name: Create SSSD configuration for local KDC
+      ansible.builtin.copy:
+        src: /root/configs/00-sssd-conf.d-localkdc.conf
+        remote_src: true
+        dest: /etc/sssd/conf.d/localkdc.conf
+        owner: root
+        group: sssd
+        mode: '0640'
+
+    - name: Create default Samba configuration
+      ansible.builtin.copy:
+        src: /root/configs/00-samba-smb.conf
+        remote_src: true
+        dest: /etc/samba/smb.conf
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Enable SSSD KCM service
+      ansible.builtin.systemd_service:
+        name: sssd-kcm.service
+        enabled: true
+        state: started
+
+    - name: Configure Local KDC
+      ansible.builtin.shell: |
+        /usr/sbin/localkdc-setup
+
+    - name: Enable LocalKDC socket
+      ansible.builtin.systemd_service:
+        name: localkdc.socket
+        enabled: true
+        state: started
+
+    - name: Enable SSSD service
+      ansible.builtin.systemd_service:
+        name: sssd.service
+        enabled: true
+        state: started
+
+    - name: Enable Samba service
+      ansible.builtin.systemd_service:
+        name: smb.service
+        enabled: true
+        state: started
+
+    - name: Enable Winbind service
+      ansible.builtin.systemd_service:
+        name: winbind.service
+        enabled: true
+        state: started
+
+    - name: Create a user 'testuser' with a home directory
+      ansible.builtin.user:
+        name: testuser
+        create_home: yes
+        groups: wheel
+        append: true
+
+    - name: Add local KDC credentials for user 'testuser'
+      ansible.builtin.shell: |
+        /usr/sbin/localkdc-kadmin addprinc -pw Secret123 testuser
+

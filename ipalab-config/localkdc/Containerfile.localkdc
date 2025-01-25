@@ -15,21 +15,29 @@ RUN echo 'deltarpm = false' >> /etc/dnf/dnf.conf \
         openssh-server \
         sudo \
         wget \
-        samba \
-        samba-client \
+        samba samba-winbind samba-client \
         localkdc \
         krb5-workstation \
         firewalld \
+        sssd sssd-krb5 sssd-kcm sssd-idp sssd-passkey sssd-winbind-idmap sssd-tools \
+        certmonger oddjob oddjob-mkhomedir \
+        authselect \
     && dnf clean all \
     && sed -i 's/.*PermitRootLogin .*/#&/g' /etc/ssh/sshd_config \
     && echo 'PermitRootLogin yes' >> /etc/ssh/sshd_config \
     && sed -i -e 's@^\(session.*required.*pam_loginuid\)@#\1@' /etc/pam.d/sshd \
     && systemctl enable sshd \
+    && systemctl enable oddjobd \
+    && systemctl enable sssd-kcm \
     && for i in /usr/lib/systemd/system/*-domainname.service; \
     do sed -i 's#^ExecStart=/#ExecStart=-/#' $i ; done \
     && { systemctl mask firewalld ||: ; } \
     && { systemctl mask systemd-resolved ||: ; } \
-    && systemctl set-default multi-user.target
+    && systemctl set-default multi-user.target \
+    && authselect select sssd with-gssapi with-mkhomedir --force \
+    && mkdir /root/configs
+
+COPY configs/00-* /root/configs/
 
 STOPSIGNAL RTMIN+3
 VOLUME ["/localkdc", "/run", "/tmp"]

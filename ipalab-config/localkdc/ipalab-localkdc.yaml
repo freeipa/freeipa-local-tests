@@ -5,21 +5,16 @@ lab_name: localkdc
 container_fqdn: true
 containerfiles:
   - Containerfile.localkdc
-network: external_dns
+extra_data:
+  - configs
+  - playbooks
 subnet: "192.168.221.0/24"
-external:
-  domain: localkdc.test
-  hosts:
-  - name: nameserver
-    hostname: unbound.localkdc.test
-    role: dns
-    options:
-      zones:
-        - name: ipa.test
-          file: "localkdc/unbound/ipa.test.zone"
-        - reverse_ip: "192.168.221.0/24"
-          file: "localkdc/unbound/221.168.192.in-addr.arpa.zone"
-  - name: ab
-    distro: fedora-localkdc
-  - name: asn
-    distro: fedora-localkdc
+ipa_deployments:
+  - name: localkdcs
+    domain: localkdc.test
+    cluster:
+      clients: 
+        - name: ab
+          distro: fedora-localkdc
+        - name: asn
+          distro: fedora-localkdc
