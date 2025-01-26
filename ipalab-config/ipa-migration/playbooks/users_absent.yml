@@ -1,11 +1,11 @@
 ---
 - name: Ensure several users exist on origin server
-  hosts: origin
+  hosts: m1.origin.test
   become: false
   gather_facts: false
   tasks:
   - name: Generate users list
-    ansible.builtin.import_tasks: generate_test_data.yml
+    ansible.builtin.import_tasks: generate_test_users_data.yml
     run_once: true
     delegate_to: localhost
     vars:
