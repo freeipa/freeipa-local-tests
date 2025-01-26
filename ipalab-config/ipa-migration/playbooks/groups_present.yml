@@ -1,0 +1,19 @@
+---
+- name: Ensure several groups exist on origin server
+  hosts: m1.origin.test
+  become: false
+  gather_facts: false
+  tasks:
+  - name: Generate groups list
+    ansible.builtin.import_tasks: generate_test_groups_data.yml
+    run_once: true
+    delegate_to: localhost
+    vars:
+      user_count: 50
+
+  - name: Ensure groups are present
+    freeipa.ansible_freeipa.ipagroup:
+      ipaadmin_password: "{{ ipaadmin_password | default('Secret123') }}"
+      groups: "{{ group_list }}"
+      state: present
+...
