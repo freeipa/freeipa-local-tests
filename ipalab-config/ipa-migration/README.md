@@ -27,10 +27,11 @@ Deploy the IPA cluster:
 ansible-playbook -i inventory.yml playbooks/install-cluster.yml
 ```
 
-To test ipa-migration, first create some objects in the origin server:
+To test ipa-migration, first create some objects (users and groups) in the origin server:
 
 ```
 ansible-playbook -i inventory.yml playbooks/users_present.yml
+ansible-playbook -i inventory.yml playbooks/groups_present.yml
 ```
 
 Access the target server container:
@@ -55,3 +56,18 @@ Execute the ipa-migration tool, and answer to the questions:
 ipa-migrate prod-mode m1.origin.test
 ```
 
+
+## Troubleshooting
+Disaster recovery. The following commands are commonly used to stop all containers, prune unused resources, and remove images:
+
+```
+podman stop --all
+podman system prune --all --force && podman rmi --all
+```
+
+Connect to the Containers:
+
+```
+podman ps
+podman exec -it <name> bash
+```
