@@ -27,14 +27,39 @@ Deploy the IPA cluster:
 ansible-playbook -i inventory.yml playbooks/install-cluster.yml
 ```
 
-To test ipa-migration, first create some objects (users and groups) in the origin server:
+## Create some objects in the origin server
+
+To deploy identity materials to the origin server, follow these steps.
+
+
+Generate data (users, groups, hosts, sudorules, hbacrules, ...) as an ldif file, and copy the file to the origin server container:
+
+```
+python ./scripts/create-data-ldif.py > data.ldif
+podman cp data.ldif m1.origin.test:/tmp/data.ldif
+```
+
+Access the origin server container, and add the content (the server must be in migration mode to allow pre-hashed passwords):
+
+```
+podman exec -it m1.origin.test bash
+echo Secret123 | kinit
+ipa config-mod --enable-migration=true
+ldapadd -x -D 'cn=directory manager' -W < data.ldif
+ipa config-mod --enable-migration=false
+```
+
+
+Alternatively you can also add users and groups using regular ansible playbooks:
 
 ```
 ansible-playbook -i inventory.yml playbooks/users_present.yml
 ansible-playbook -i inventory.yml playbooks/groups_present.yml
 ```
 
-Access the target server container:
+## Test migration procedure
+
+Now, to test the migration process, access the target server container:
 
 ```
 podman exec -it m2.target.test bash
