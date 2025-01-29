@@ -28,7 +28,7 @@ This use case demonstrates the setup and testing of trust relationships between 
 
 ### FreeIPA-to-FreeIPA Migration
 This use case focuses on migrating FreeIPA setups between environments.
-Detailed instructions can be found in the [ipa-migration README](./ipa-migration/README.md).
+Detailed instructions can be found in the [ipa-migration README](./ipa-migrate/README.md).
 
 ### Deploy a Local KDC for Authenticating Users Locally
 This use case involves deploying a local KDC for authenticating user credentials. It demonstrates that Samba can rely on the local KDC for both local and remote machines. Detailed instructions can be found in the [localkdc README](./localkdc/README.md).
