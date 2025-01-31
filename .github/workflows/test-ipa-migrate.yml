@@ -1,0 +1,89 @@
+---
+name: test-ipa-migrate
+run-name: Test ipa-migrate
+on: 
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Debug environment
+        run: |
+          id
+          cat /proc/$$/subuid_map ||:
+          cat /proc/$$/subgid_map ||:
+          cat /etc/subuid ||:
+          cat /etc/subgid ||:
+
+      - name: Install dependencies
+        run: |
+          sudo apt update -y
+          sudo apt install libkrb5-dev libvirt-dev
+          sudo apt install software-properties-common
+          sudo apt install ansible podman
+
+      - name: Clone the repository
+        uses: actions/checkout@v4
+
+      - name: Build image
+        id: build-image
+        uses: redhat-actions/buildah-build@v2
+        with:
+          image: containerfile-fedora
+          tags: latest
+          containerfiles: ipalab-config/ipa-migrate/containerfile-fedora
+
+      - name: Setup ipalab config
+        run: |
+          python3 -m venv venv
+          source venv/bin/activate
+          cd ipalab-config/ipa-migrate
+          pip3 install -r requirements.txt
+          pip3 install podman-compose
+
+      - name: Generate containers
+        run: |
+          source venv/bin/activate
+          ipalab-config -f ipalab-config/ipa-migrate/containerfile-fedora \
+                        -p ipalab-config/ipa-migrate/playbooks \
+                        ipalab-config/ipa-migrate/ipalab-migration.yaml
+          cd ./ipalab-migration
+          podman-compose -f compose.yml up -d
+          ansible-galaxy collection install \
+                         -r requirements.yml
+
+      - name: Deploy FreeIPA Origin and Target Servers
+        run: |
+          source venv/bin/activate
+          cd ./ipalab-migration
+          # disable 'become' on install-clupster.yml playbook
+          sed -i 's/become: .*$/become: false/' \
+              playbooks/install-cluster.yml
+          ansible-playbook -i inventory.yml \
+                           playbooks/install-cluster.yml
+          ansible-playbook -i inventory.yml playbooks/install-cluster.yml
+
+      - name: Generate Identity Management Data on the Origin Server
+        run: |
+          source venv/bin/activate
+          cd ./ipalab-migration
+          ansible-playbook -i inventory.yml playbooks/users_present.yml
+          ansible-playbook -i inventory.yml playbooks/groups_present.yml
+
+      - name: Run ipa-migrate
+        run: |
+          source venv/bin/activate
+          ansible-galaxy collection install ansible.posix
+          cd ./ipalab-migration
+          podman exec -it m2.target.test bash -c "echo Secret123 | kinit admin && ipa-migrate prod-mode -w Secret123 --no-prompt m1.origin.test"
+...
