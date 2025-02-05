@@ -14,19 +14,20 @@ Build the containers:
 
 ```
 ipalab-config -f containerfile-fedora -p playbooks ipalab-idmtoidm-trust.yaml
-podman-compose -f idm2idm-trust/compose.yml up -d --build
-ansible-galaxy collection install -r idm2idm-trust/requirements.yml
+cd idm2idm-trust
+podman-compose up -d --build
+ansible-galaxy collection install -r requirements.yml
 ```
 
 Deploy the IPA cluster:
 
 ```
-ansible-playbook -i idm2idm-trust/inventory.yml idm2idm-trust/playbooks/install-cluster.yml
+ansible-playbook -i inventory.yml playbooks/install-cluster.yml
 ```
 
 Establish trust:
 
 ```
 ansible-galaxy collection install ansible.posix
-ansible-playbook -i idm2idm-trust/inventory.yml idm2idm-trust/playbooks/establish-trust.yaml
+ansible-playbook -i inventory.yml playbooks/establish-trust.yaml
 ```
