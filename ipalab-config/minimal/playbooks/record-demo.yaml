@@ -1,0 +1,45 @@
+---
+- name: Minimal IPA deployment demo recording
+  hosts: client.minimal.test
+  become: false
+  gather_facts: false
+
+  tasks:
+    - name: Install VHS recorder
+      ansible.builtin.shell: |
+        dnf -y copr enable abbra/vhs
+        dnf -y install vhs
+
+    - name: Ensure home directory exists
+      ansible.builtin.shell: |
+        echo $PWD
+      become: true
+      become_method: su
+      become_user: admin
+      become_flags: '-s /bin/bash'
+
+    - name: Copy VHS tape to the target
+      ansible.builtin.copy:
+        src: tapes/basic-demo.tape
+        dest: /home/admin/basic-demo.tape
+        owner: admin
+        group: admins
+        mode: '0640'
+
+    - name: Record demo
+      ansible.builtin.shell: |
+        cd /home/admin
+        kdestroy -A
+        rm -f .ssh/known_hosts
+        vhs basic-demo.tape
+      become: true
+      become_method: su
+      become_user: admin
+      become_flags: '-s /bin/bash'
+
+    - name: Fetch recorded video
+      ansible.builtin.fetch:
+        src: /home/admin/basic-demo.webm
+        dest: ../results/
+        flat: true
+

@@ -1,0 +1,39 @@
+# Build configuration with
+#     $ ipalab-config minimal.yaml
+---
+lab_name: minimal
+subnet: "192.168.111.0/24"
+container_fqdn: true
+nolog: true
+containerfiles:
+  - Containerfile.minimal
+extra_data:
+  - playbooks
+ipa_deployments:
+  - name: t1
+    domain: minimal.test
+    admin_password: Secret123
+    dm_password: Secret123
+    distro: ipalab-minimal-demo
+    cluster:
+      servers:
+        - name: dc
+          nolog: true
+          capabilities:
+            - DNS
+            - AD
+          vars:
+            ipaserver_netbios_name: DC
+            ipaserver_idstart: 61000
+            ipaserver_idmax: 62000
+            ipaserver_rid_base: 63000
+            ipaserver_secondary_rid_base: 70000
+            ipaserver_install_packages: no
+            ipaclient_mkhomedir: yes
+      clients:
+        - name: client
+          nolog: true
+          vars:
+            ipaclient_install_packages: no
+            ipaclient_mkhomedir: yes
+            

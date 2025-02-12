@@ -1,10 +1,7 @@
 ---
 name: test-with-action
-run-name: Test IPA-IPA trust using a Github Action
+run-name: Run local FreeIPA tests using a Github Action
 on:
-  pull_request:
-    branches:
-      - main
   push:
     # branches:
     #   - main
@@ -14,7 +11,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test-github-action:
+  test-ipa-ipa-trust:
     runs-on: ubuntu-24.04
     steps:
       - name: Clone the repository
@@ -29,8 +26,74 @@ jobs:
           containerfiles: ipalab-config/ipa-trust/containerfile-fedora
 
       - name: Run tests using action
-        uses: rjeffman/FreeIPA-Cluster-Test@v1.2.0
+        uses: rjeffman/FreeIPA-Cluster-Test@v1.3.0
         with:
           cluster_configuration: ipalab-config/ipa-trust/ipalab-idmtoidm-trust.yaml
           ansible_requirements: ipalab-config/ipa-trust/playbooks/requirements.yml
           test_playbooks: ipalab-config/ipa-trust/playbooks/establish-trust.yaml
+
+  minimal-demo:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Clone the repository
+        uses: actions/checkout@v4
+
+      - name: Build image
+        id: build-image
+        uses: redhat-actions/buildah-build@v2
+        with:
+          image: ipalab-minimal-demo
+          tags: latest
+          containerfiles: ipalab-config/minimal/Containerfile.minimal
+
+      - name: Create environment and record a demo
+        uses: rjeffman/FreeIPA-Cluster-Test@v1.3.0
+        with:
+          cluster_configuration: ipalab-config/minimal/minimal.yaml
+
+      - name: Collect server logs in case of a test failure
+        shell: bash
+        if: failure()
+        run: |
+          podman exec -ti dc.minimal.test ls -laR /var/log
+          mkdir -p CONFIG_DIR/results
+          podman exec -ti dc.minimal.test dnf -y install sos
+          podman exec -ti dc.minimal.test sos report \
+                          --profile={identity,webserver,security,system,network} \
+                          -a --all-logs --batch
+          podman exec dc.minimal.test sh -c 'ls /var/tmp/sosreport*' | while read f ; do
+              podman cp dc.minimal.test:$f CONFIG_DIR/results/
+          done
+
+      - name: Upload server logs
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: server-logs
+          path: CONFIG_DIR/results/sosreport*
+          if-no-files-found: ignore
+
+
+      - name: Record demo
+        shell: bash
+        if: success()
+        run: |
+          source venv/bin/activate
+          cd CONFIG_DIR
+          ansible-playbook -i inventory.yml playbooks/record-demo.yaml
+
+      - name: Upload the demo recording
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: minimal-demo
+          path: CONFIG_DIR/results/basic-demo.webm
+          if-no-files-found: ignore
+
+      - name: Shut down the environment
+        shell: bash
+        if: always()
+        run: |
+          source venv/bin/activate
+          cd CONFIG_DIR
+          podman-compose down
