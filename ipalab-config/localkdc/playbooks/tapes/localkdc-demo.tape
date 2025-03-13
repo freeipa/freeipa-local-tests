@@ -102,8 +102,10 @@ Type "# Access a home SMB share on a different machine with Kerberos IAKerb exte
 Enter
 Type "# This time we would type a password but Samba will not use NTLM protocol"
 Enter
+Type "# Notice also we do not specify any Kerberos realm"
+Enter
 Sleep 2s
-Type "smbclient -U testuser@ASN.LOCALKDC.SITE --client-protection=encrypt //asn.localkdc.test/homes"
+Type "smbclient -U testuser --client-protection=encrypt //asn.localkdc.test/homes"
 Enter
 Sleep 1s
 Type "Secret123"
