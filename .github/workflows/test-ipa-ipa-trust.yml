@@ -69,9 +69,9 @@ jobs:
           cd ./idm2idm-trust
           # disable 'become' on install-clupster.yml playbook
           sed -i 's/become: .*$/become: false/' \
-              playbooks/install-cluster.yml
+              ${HOME}/.ansible/collections/ansible_collections/freeipa/ansible_freeipa/playbooks/install-cluster.yml
           ansible-playbook -i inventory.yml \
-                           playbooks/install-cluster.yml
+                           ${HOME}/.ansible/collections/ansible_collections/freeipa/ansible_freeipa/playbooks/install-cluster.yml
 
       - name: Establish trust between IPA deployments
         run: |

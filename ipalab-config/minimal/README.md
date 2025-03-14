@@ -54,7 +54,7 @@ ansible-freeipa playbooks. These playbooks installed by `ipalab-config`
 automatically:
 
 ```
-ansible-playbook -i inventory.yml playbooks/install-cluster.yml
+ansible-playbook -i inventory.yml ${HOME}/.ansible/collections/ansible_collections/freeipa/ansible_freeipa/playbooks/install-cluster.yml
 ```
 
 After successful run of the playbook two FreeIPA systems would be provisioned:

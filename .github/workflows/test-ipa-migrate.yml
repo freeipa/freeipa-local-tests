@@ -69,10 +69,10 @@ jobs:
           cd ./ipalab-migration
           # disable 'become' on install-clupster.yml playbook
           sed -i 's/become: .*$/become: false/' \
-              playbooks/install-cluster.yml
+              ${HOME}/.ansible/collections/ansible_collections/freeipa/ansible_freeipa/playbooks/install-cluster.yml
           ansible-playbook -i inventory.yml \
-                           playbooks/install-cluster.yml
-          ansible-playbook -i inventory.yml playbooks/install-cluster.yml
+                           ${HOME}/.ansible/collections/ansible_collections/freeipa/ansible_freeipa/playbooks/install-cluster.yml
+          ansible-playbook -i inventory.yml ${HOME}/.ansible/collections/ansible_collections/freeipa/ansible_freeipa/playbooks/install-cluster.yml
 
       - name: Generate Identity Management Data on the Origin Server
         run: |

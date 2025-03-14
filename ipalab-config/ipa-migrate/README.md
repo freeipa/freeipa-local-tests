@@ -24,7 +24,7 @@ ansible-galaxy collection install -r requirements.yml
 Deploy the IPA cluster:
 
 ```
-ansible-playbook -i inventory.yml playbooks/install-cluster.yml
+ansible-playbook -i inventory.yml ${HOME}/.ansible/collections/ansible_collections/freeipa/ansible_freeipa/playbooks/install-cluster.yml
 ```
 
 ## Create some objects in the origin server
