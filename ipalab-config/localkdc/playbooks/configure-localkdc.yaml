@@ -5,18 +5,31 @@
   gather_facts: true
 
   vars:
-    ab_realm: AB.LOCALKDC.SITE
-    asn_realm: ASN.LOCALKDC.SITE
+    host_ab: ab.localkdc.test
+    host_asn: asn.localkdc.test
+    test_user: testuser
+    test_pass: Secret123
 
   tasks:
+    - name: Configure Local KDC
+      ansible.builtin.shell: |
+        /usr/sbin/localkdc-setup
+
+    - name: Collect local KDC information
+      shell: |
+        grep default_realm /etc/krb5.conf.d/localkdc | cut -d= -f2
+      register: localkdc_info
+
     - name: Generate realm name based on the host name
       ansible.builtin.set_fact:
         workgroup_name: "{{ ansible_facts.fqdn.split('.')[0] | upper }}"
-        realm_name: "{{ ansible_facts.fqdn.split('.')[0] | upper }}.LOCALKDC.SITE"
+        realm_name: "{{ localkdc_info.stdout | trim }}"
 
     - name: Modify configuration templates to apply realm name
       ansible.builtin.shell: |
         sed -i "s@%REALM%@{{ realm_name }}@g" /root/configs/00-*
+        sed -i "s@%REALM_AB%@{{ hostvars[host_ab]['realm_name'] }}@g" /root/configs/00-*
+        sed -i "s@%REALM_ASN%@{{ hostvars[host_asn]['realm_name'] }}@g" /root/configs/00-*
         sed -i "s@%WORKGROUP%@{{ workgroup_name }}@g" /root/configs/00-*
 
     - name: Set local KDC configuration defaults
@@ -61,10 +74,6 @@
         enabled: true
         state: started
 
-    - name: Configure Local KDC
-      ansible.builtin.shell: |
-        /usr/sbin/localkdc-setup
-
     - name: Enable LocalKDC socket
       ansible.builtin.systemd_service:
         name: localkdc.socket
@@ -89,19 +98,19 @@
         enabled: true
         state: started
 
-    - name: Create a user 'testuser' with a home directory
+    - name: Create a user '{{ test_user }}' with a home directory
       ansible.builtin.user:
-        name: testuser
+        name: {{ test_user }}
         create_home: yes
         groups: wheel
         append: true
 
     - name: Add local KDC credentials for user 'testuser'
       ansible.builtin.shell: |
-        /usr/sbin/localkdc-kadmin addprinc -pw Secret123 testuser
+        echo -e "{{ test_pass }}\n{{ test_pass }}\n" | /usr/sbin/localkdc-useradd "{{ test_user }}"
 
     - name: Add local KDC cross-realm trust between machines
       ansible.builtin.shell: |
-        /usr/sbin/localkdc-kadmin addprinc -pw Secret123 krbtgt/{{ ab_realm }}@{{ asn_realm }}
-        /usr/sbin/localkdc-kadmin addprinc -pw Secret123 krbtgt/{{ asn_realm }}@{{ ab_realm }}
+        /usr/sbin/localkdc-kadmin addprinc -pw Secret123 "krbtgt/{{ hostvars[host_ab]['realm_name'] }}@{{  hostvars[host_asn]['realm_name'] }}"
+        /usr/sbin/localkdc-kadmin addprinc -pw Secret123 "krbtgt/{{ hostvars[host_asn]['realm_name'] }}@{{ hostvars[host_ab]['realm_name'] }}"
 
