@@ -1,0 +1,71 @@
+---
+name: test-ipa-keycloak-with-action
+run-name: Run local FreeIPA tests using a Github Action
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-ipa-keycloak:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Clone the repository
+        uses: actions/checkout@v4
+
+      - name: Create environment with FreeIPA-Cluster-Test
+        uses: rjeffman/FreeIPA-Cluster-Test@v1.5.0
+        with:
+          cluster_configuration: ipalab-config/ipa-keycloak/lab_ipa_keycloak.yml
+          shutdown: false
+
+      - name: Trust Keycloak certificate
+        shell: bash
+        run: keycloak/trust_keycloak.sh server
+
+      - name: Add Keycloak OIDC client
+        shell: bash
+        run: keycloak/keycloak_add_oidc_client.sh  server.ipa.test ipa_oidc_client Secret123
+
+      - name: Create Keycloak user
+        shell: bash
+        run: keycloak/keycloak_add_user.sh jdoe jdoe@example.test userPASS
+
+      - name: Configure Keycloak as an IPA IDP endpoint
+        shell: bash
+        run: ansible-playbook -i inventory.yml playbooks/idp_keycloak.yml
+
+      - name: "Add user with 'auth-type: idp'"
+        shell: bash
+        run: ansible-playbook -i inventory.yml playbooks/add_user_auth_idp.yml
+
+      #
+      # The comments below are yet to be implemented as the actual login
+      # requires the access of a one-time link and typing in the console.
+      #
+
+      # - name: Login user jdoe in Keycloak
+
+      # - name: Authorize ipa_oidc_client device authentication for user jdoe
+
+      # - name: Authenticate jdoe on IPA
+      #   shell: bash
+      #   run: |
+      #     podman exec server kinit -n -c /fast.ccache
+      #     podman exec -it server kinit -T /fast.ccache jdoe
+      #     # Retrieve login link
+      #     # Authorize login within keycloak
+      #     # Send ENTER to shell
+
+      - name: Shutdown environment
+        uses: rjeffman/FreeIPA-Cluster-Test@v1.5.0
+        with:
+          cluster_configuration: ipalab-config/ipa-keycloak/lab_ipa_keycloak.yml
+          shutdown: true
