@@ -4,9 +4,9 @@ Require smbclient
 
 Set Theme GruvboxDark
 Set Shell "bash"
-Set FontSize 16
-Set Width 1200
-Set Height 800
+Set FontSize 18
+Set Width 1920
+Set Height 1080
 Output localkdc-demo.webm
 
 Type "# Welcome to the local KDC demo!"
@@ -18,23 +18,24 @@ Enter
 Sleep 1s
 Type "ssh testuser@ab.localkdc.test"
 Enter
-Sleep 2s
+Wait /\)\?/
 Type "yes"
 Enter
-Sleep 2s
+Wait /password:/
 Type "Secret123"
 Enter
-Sleep 2s
+Wait /\]\$/
 Type "# We are in. Kerberos ticket was obtained upon login:"
 Enter
 Type "klist"
 Enter
-Sleep 2s
+Wait /\]\$/
 Type "# Communication with KDC is done over UNIX domain socket"
 Enter
-Sleep 1s
+Wait /\]\$/
 Type "KRB5_TRACE=/dev/stdout kvno -S host `hostname` | grep socket"
 Enter
+Wait /\]\$/
 Sleep 5s
 Hide
 Type "clear"
@@ -44,25 +45,26 @@ Type "# We can use Kerberos tickets to access other applications"
 Enter
 Type "id"
 Enter
-Sleep 3s
+Wait /\]\$/
 Type "# The user belongs to the 'wheel' group and can use SUDO"
 Enter
 Type "authselect current"
 Enter
-Sleep 2s
+Wait /\]\$/
 Type "# Authenticate SUDO with GSSAPI, press ENTER and no password: "
 Enter
 Sleep 2s
 Type "sudo -i"
 Enter
-Sleep 1s
+Wait /password for/
 Enter
-Sleep 2s
+Wait /\]#/
 Type "id"
 Enter
-Sleep 2s
+Wait /\]#/
 Type "systemctl status localkdc.socket"
 Enter
+Wait /\]#/
 Sleep 3s
 Ctrl+D
 Type "klist"
@@ -76,18 +78,18 @@ Type "# Access a home SMB share on the same machine with Kerberos authentication
 Enter
 Sleep 2s
 Type "smbclient --use-kerberos=required --use-krb5-ccache=KCM: --client-protection=encrypt //`hostname`/homes"
-Sleep 2s
 Enter
-Sleep 1s
+Wait /\\>/
 Type "dir"
 Enter
-Sleep 2s
+Wait /\\>/
 Ctrl+D
 Sleep 1s
 Type "# Samba client obtained a Kerberos service ticket to CIFS service (Samba)"
 Enter
 Type "klist"
 Enter
+Wait /\]\$/
 Sleep 4s
 Type "# We can also check the Samba audit events:"
 Enter
@@ -104,41 +106,67 @@ Type "# This time we would type a password but Samba will not use NTLM protocol"
 Enter
 Type "# Notice also we do not specify any Kerberos realm"
 Enter
-Sleep 2s
+Wait /\]\$/
 Type "smbclient -U testuser --client-protection=encrypt //asn.localkdc.test/homes"
 Enter
-Sleep 1s
+Wait /\]:/
 Type "Secret123"
 Enter
-Sleep 1s
+Wait /\\>/
 Type "dir"
 Enter
 Ctrl+D
+Wait /\]\$/
 Sleep 2s
 Type "# Let us check whether the Samba authenticated via IAKerb extension:"
 Enter
 Sleep 1s
 Type "ssh testuser@asn.localkdc.test"
 Enter
-Sleep 1s
+Wait /\)\?/
 Type "yes"
 Enter
-Sleep 1s
+Wait /password:/
 Type "Secret123"
 Enter
-Sleep 1s
+Wait /\]\$/
 Type "sudo -i"
 Enter
-Sleep 1s
+Wait /password for/
 Enter
-Sleep 1s
+Wait /\]#/
 Type "grep AuthZ /var/log/samba/audit.log | tail -1"
 Enter
 Sleep 6s
 Ctrl+D
 Ctrl+D
-Ctrl+D
+Sleep 4s
+Hide
+Type "clear"
+Enter
+Show
+Type "# This also works over IP addresses: "
+Enter
 Sleep 2s
+Type "kdestroy -A"
+Enter
+Sleep 1s
+Type "smbclient -U testuser --client-protection=encrypt --use-kerberos=required --use-krb5-ccache=KCM: //192.168.221.3/homes"
+Enter
+Wait /\]:/
+Type "Secret123"
+Enter
+Wait /\\>/
+Sleep 1s
+Type "dir"
+Enter
+Ctrl+D
+Type "klist"
+Enter
+Sleep 4s
+Ctrl+D
+Ctrl+D
+Ctrl+D
 Type "# Thank you!"
 Enter
 Ctrl+D
