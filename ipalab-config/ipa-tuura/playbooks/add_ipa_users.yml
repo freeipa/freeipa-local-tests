@@ -1,0 +1,22 @@
+---
+- name: Add Keycloak as an external IDP for IPA
+  hosts: ipaserver
+  become: false
+  gather_facts: false
+
+  collections:
+    - freeipa.ansible_freeipa
+
+  module_defaults:
+    group/freeipa.ansible_freeipa.modules:
+      ipaadmin_password: SomeADMINpassword
+
+  tasks:
+  - name: Ensure Keycloak IDP is present
+    ipaidp:
+      name: keycloak-idp
+      provider: keycloak
+      organization: master
+      base_url: "https://keycloak.example.test:8443"
+      client_id: ipa_oidc_client
+      secret: Secret123

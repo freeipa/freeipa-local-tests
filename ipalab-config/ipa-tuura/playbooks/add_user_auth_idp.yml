@@ -1,0 +1,23 @@
+---
+- name: Add IPA user using IDP authorization
+  hosts: ipaserver
+  become: false
+  gather_facts: false
+
+  collections:
+    - freeipa.ansible_freeipa
+
+  module_defaults:
+    group/freeipa.ansible_freeipa.modules:
+      ipaadmin_password: SomeADMINpassword
+
+  tasks:
+  - name: Ensure user 'jdoe' exists and uses 'idp' for authorization
+    ipauser:
+      name: jdoe
+      first: John
+      last: doe
+      email: jdoe@ipa.test
+      idp: keycloak-idp
+      idp_user_id: jdoe@example.test
+      userauthtype: idp

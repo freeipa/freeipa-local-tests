@@ -1,0 +1,28 @@
+---
+lab_name: ipa-tuura-keycloak
+subnet: "192.168.173.0/24"
+# container_fqdn: true
+## This is only needed if we want to build
+## the ipatuura container
+# containerfiles:
+#  - "ipa-tuura.containerfile"
+external:
+  hosts:
+  - name: keycloak
+    hostname: keycloak.external.test
+    role: keycloak
+    options:
+      # admin_username: defaults to "admin"
+      # admin_password: defaults to "secret123"
+  - name: ipatuura
+    hostname: ipatuura.ipa.test
+    image: "quay.io/freeipa/ipa-tuura:latest"
+ipa_deployments:
+  - name: ipa
+    domain: ipa.test
+    admin_password: SomeADMINpassword
+    dm_password: SomeDMpassword
+    cluster:
+      servers:
+        - name: server
+          capabilities: ["DNS"]
