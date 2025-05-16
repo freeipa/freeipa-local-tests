@@ -100,7 +100,7 @@
 
     - name: Create a user '{{ test_user }}' with a home directory
       ansible.builtin.user:
-        name: {{ test_user }}
+        name: "{{ test_user }}"
         create_home: yes
         groups: wheel
         append: true
